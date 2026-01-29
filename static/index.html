@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastAPI Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f0f2f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .section:last-child {
+            border-bottom: none;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            border-left: 4px solid #007bff;
+            display: none;
+        }
+        .result-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .result-content {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: monospace;
+        }
+        .file-info {
+            margin-top: 10px;
+            padding: 10px;
+            background: #e7f3ff;
+            border-radius: 5px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>FastAPI Demo</h1>
+
+        <!-- Приветствие -->
+        <div class="section">
+            <h2>Приветствие</h2>
+            <p>GET /greetings</p>
+            <label>Имя:</label>
+            <input type="text" id="name" placeholder="Введите имя" value="Гость">
+            <button onclick="sendGreeting()">Отправить приветствие</button>
+            <div class="result" id="greeting-result">
+                <div class="result-title">Ответ:</div>
+                <div class="result-content" id="greeting-content"></div>
+            </div>
+        </div>
+
+        <!-- Эхо -->
+        <div class="section">
+            <h2>Эхо</h2>
+            <p>POST /echo</p>
+            <label>Текст:</label>
+            <textarea id="echo-text" placeholder="Введите текст для эха" rows="3">Тестовое сообщение</textarea>
+            <button onclick="sendEcho()">Отправить эхо</button>
+            <div class="result" id="echo-result">
+                <div class="result-title">Ответ (JSON):</div>
+                <div class="result-content" id="echo-content"></div>
+            </div>
+        </div>
+
+        <!-- Прощание -->
+        <div class="section">
+            <h2>Прощание</h2>
+            <p>GET /farewells</p>
+            <button onclick="sendFarewell()">Попрощаться</button>
+            <div class="result" id="farewell-result">
+                <div class="result-title">Ответ (JSON):</div>
+                <div class="result-content" id="farewell-content"></div>
+            </div>
+        </div>
+
+        <!-- Монолог -->
+        <div class="section">
+            <h2>Монолог</h2>
+            <p>POST /monologue</p>
+            <label>Выберите файл:</label>
+            <input type="file" id="file-input" onchange="updateFileInfo()">
+            <div class="file-info" id="file-info">
+                Выбран: <span id="file-name"></span> (<span id="file-size"></span>)
+            </div>
+            <button onclick="sendFile()">Загрузить файл</button>
+            <div class="result" id="monologue-result">
+                <div class="result-title">Результат:</div>
+                <div class="result-content" id="monologue-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:7777';
+
+        // Приветствие
+        async function sendGreeting() {
+            const name = document.getElementById('name').value.trim();
+            if (!name) return;
+
+            try {
+                const response = await fetch(`${API_URL}/api/greetings?name=${encodeURIComponent(name)}`);
+                const text = await response.text();
+
+                document.getElementById('greeting-content').textContent = text;
+                document.getElementById('greeting-result').style.display = 'block';
+            } catch (error) {
+                document.getElementById('greeting-content').textContent = `Ошибка: ${error.message}`;
+                document.getElementById('greeting-result').style.display = 'block';
+            }
+        }
+
+        // Эхо (обрабатываем JSON как и прощание)
+        async function sendEcho() {
+            const text = document.getElementById('echo-text').value.trim();
+            if (!text) return;
+
+            try {
+                const response = await fetch(`${API_URL}/api/echo`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message: text })
+                });
+
+                const data = await response.json();
+                // Форматируем JSON для красивого отображения
+                document.getElementById('echo-content').textContent =
+                    `Статус: ${data.status}\nСообщение: ${data.message}`;
+                document.getElementById('echo-result').style.display = 'block';
+            } catch (error) {
+                document.getElementById('echo-content').textContent = `Ошибка: ${error.message}`;
+                document.getElementById('echo-result').style.display = 'block';
+            }
+        }
+
+        // Прощание
+        async function sendFarewell() {
+            try {
+                const response = await fetch(`${API_URL}/api/farewells`);
+                const data = await response.json();
+
+                // Точно такой же формат как для эхо
+                document.getElementById('farewell-content').textContent =
+                    `Статус: ${data.status}\nСообщение: ${data.message}`;
+                document.getElementById('farewell-result').style.display = 'block';
+            } catch (error) {
+                document.getElementById('farewell-content').textContent = `Ошибка: ${error.message}`;
+                document.getElementById('farewell-result').style.display = 'block';
+            }
+        }
+
+        // Файл информация
+        function updateFileInfo() {
+            const fileInput = document.getElementById('file-input');
+            const fileInfo = document.getElementById('file-info');
+
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const fileSize = file.size > 1024
+                    ? `${(file.size / 1024).toFixed(1)} KB`
+                    : `${file.size} bytes`;
+
+                document.getElementById('file-name').textContent = file.name;
+                document.getElementById('file-size').textContent = fileSize;
+                fileInfo.style.display = 'block';
+            } else {
+                fileInfo.style.display = 'none';
+            }
+        }
+
+        // Монолог (загрузка файла)
+        async function sendFile() {
+            const fileInput = document.getElementById('file-input');
+            if (!fileInput.files.length) {
+                alert('Выберите файл');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch(`${API_URL}/api/monologue`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'monologue.txt';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+
+                    document.getElementById('monologue-content').textContent =
+                        `Файл успешно загружен!\nФайл "${file.name}" скачан как "monologue.txt"`;
+                    document.getElementById('monologue-result').style.display = 'block';
+                } else {
+                    throw new Error(`Ошибка ${response.status}`);
+                }
+            } catch (error) {
+                document.getElementById('monologue-content').textContent = `Ошибка: ${error.message}`;
+                document.getElementById('monologue-result').style.display = 'block';
+            }
+        }
+
+        // Enter для полей ввода
+        document.getElementById('name').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') sendGreeting();
+        });
+
+        document.getElementById('echo-text').addEventListener('keypress', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') sendEcho();
+        });
+    </script>
+</body>
+</html>
